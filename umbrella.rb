@@ -1,11 +1,10 @@
 require "dotenv/load"
 require "http"
 require "json"
-require "awesome_print"
 
 puts "Enter your location!"
-#user_input = gets.chomp
-user_input = "chicago"
+user_input = gets.chomp
+#user_input = "chicago"
 puts "Checking the weather at #{user_input}...."
 
 gmap_raw_resp = HTTP.get(
@@ -22,11 +21,25 @@ latitude = gmap_json["geometry"]["location"]["lat"]
 longitude = gmap_json["geometry"]["location"]["lng"]
 puts "Your coordinates are #{latitude}, #{longitude}."
 
-PIRATE_WEATHER_KEY = ENV.fetch("PIRATE_WEATHER_KEY")
 weather_raw_resp = HTTP.get(
-    "https://api.pirateweather.net/forecast/#{PIRATE_WEATHER_KEY}/#{latitude},#{longitude}",
+    "https://api.pirateweather.net/forecast/#{ENV.fetch("PIRATE_WEATHER_KEY")}/#{latitude},#{longitude}",
 )
 weather_json = JSON.parse(weather_raw_resp)
-pp weather_json.keys
+puts "It is currently #{weather_json['currently']['temperature']}°F."
+puts "Next hour: #{weather_json['minutely']['summary']}"
 
-#puts "It is currently #{curtemp}."
+umbrella = false
+weather_json['hourly']['data'][1..12].each do |hourlyData|
+  precipProb = hourlyData['precipProbability'] * 100
+  if precipProb >= 10
+    umbrella = true
+    hoursFromNow = (hourlyData['time'] - Time.now) / 60.0 / 60.0
+    puts "There is a #{precipProb.round}% chance of rain #{hoursFromNow.round} hours from now."
+  end
+end
+
+if umbrella
+  puts "You may want to take an umbrella!"
+else
+  puts "You should not require an umbrella."
+end
